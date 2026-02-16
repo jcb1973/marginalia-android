@@ -30,6 +30,9 @@ interface TagDao {
     @Query("SELECT * FROM tags ORDER BY displayName ASC")
     fun getAll(): Flow<List<TagEntity>>
 
+    @Query("SELECT * FROM tags ORDER BY displayName ASC")
+    suspend fun getAllOnce(): List<TagEntity>
+
     @Query(
         """
         SELECT tags.* FROM tags

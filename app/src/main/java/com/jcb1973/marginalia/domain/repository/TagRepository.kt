@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface TagRepository {
     fun getAllTags(): Flow<List<Tag>>
+    suspend fun getAllTagsOnce(): List<Tag>
     fun getTagsForBook(bookId: Long): Flow<List<Tag>>
     fun getAllTagsWithBookCount(): Flow<List<TagWithCount>>
     suspend fun getTagById(id: Long): Tag?

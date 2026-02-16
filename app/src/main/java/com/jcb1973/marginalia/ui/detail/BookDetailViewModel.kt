@@ -62,9 +62,7 @@ class BookDetailViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            tagRepository.getAllTags().collect { tags ->
-                _uiState.value = _uiState.value.copy(allTags = tags)
-            }
+            _uiState.value = _uiState.value.copy(allTags = tagRepository.getAllTagsOnce())
         }
     }
 
@@ -127,6 +125,24 @@ class BookDetailViewModel @Inject constructor(
         viewModelScope.launch {
             bookRepository.updateBook(updated)
             _uiState.value = _uiState.value.copy(book = updated)
+        }
+    }
+
+    fun createAndAddTag(name: String) {
+        val book = _uiState.value.book ?: return
+        val trimmed = name.trim()
+        if (trimmed.isBlank()) return
+        viewModelScope.launch {
+            val tagName = trimmed.lowercase().replace(Regex("\\s+"), "-")
+            val newTag = Tag(name = tagName, displayName = trimmed)
+            val id = tagRepository.saveTag(newTag)
+            val saved = newTag.copy(id = id)
+            val updated = book.copy(tags = book.tags + saved)
+            bookRepository.updateBook(updated)
+            _uiState.value = _uiState.value.copy(
+                book = updated,
+                allTags = tagRepository.getAllTagsOnce()
+            )
         }
     }
 

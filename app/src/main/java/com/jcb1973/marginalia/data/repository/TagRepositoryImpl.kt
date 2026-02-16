@@ -19,6 +19,9 @@ class TagRepositoryImpl @Inject constructor(
     override fun getAllTags(): Flow<List<Tag>> =
         tagDao.getAll().map { entities -> entities.map { it.toDomain() } }
 
+    override suspend fun getAllTagsOnce(): List<Tag> =
+        tagDao.getAllOnce().map { it.toDomain() }
+
     override fun getTagsForBook(bookId: Long): Flow<List<Tag>> =
         tagDao.getForBook(bookId).map { entities -> entities.map { it.toDomain() } }
 
