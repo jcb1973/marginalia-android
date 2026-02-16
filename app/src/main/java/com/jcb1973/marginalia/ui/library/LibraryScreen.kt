@@ -3,6 +3,8 @@ package com.jcb1973.marginalia.ui.library
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,8 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -21,6 +21,8 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -32,6 +34,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -54,7 +59,7 @@ import com.jcb1973.marginalia.domain.model.SortOrder
 import com.jcb1973.marginalia.ui.components.BookCard
 import com.jcb1973.marginalia.ui.components.ConfirmDeleteDialog
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun LibraryScreen(
     initialStatus: String?,
@@ -174,17 +179,58 @@ fun LibraryScreen(
             }
 
             if (state.allTags.isNotEmpty()) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .testTag("tagFilterCard"),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 ) {
-                    items(state.allTags) { tag ->
-                        FilterChip(
-                            selected = tag.id in state.selectedTags,
-                            onClick = { viewModel.toggleTag(tag.id) },
-                            label = { Text(tag.displayName) },
-                            modifier = Modifier.testTag("tagFilter_${tag.name}")
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "Tags",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            state.allTags.forEach { tag ->
+                                FilterChip(
+                                    selected = tag.id in state.selectedTags,
+                                    onClick = { viewModel.toggleTag(tag.id) },
+                                    label = { Text(tag.displayName) },
+                                    modifier = Modifier.testTag("tagFilter_${tag.name}")
+                                )
+                            }
+                        }
+                        if (state.selectedTags.size >= 2) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            SingleChoiceSegmentedButtonRow(
+                                modifier = Modifier.testTag("tagMatchModeToggle")
+                            ) {
+                                SegmentedButton(
+                                    selected = !state.matchAllTags,
+                                    onClick = { if (state.matchAllTags) viewModel.toggleTagMatchMode() },
+                                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                                    modifier = Modifier.testTag("tagMatchAny")
+                                ) {
+                                    Text("Any")
+                                }
+                                SegmentedButton(
+                                    selected = state.matchAllTags,
+                                    onClick = { if (!state.matchAllTags) viewModel.toggleTagMatchMode() },
+                                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                                    modifier = Modifier.testTag("tagMatchAll")
+                                ) {
+                                    Text("All")
+                                }
+                            }
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))

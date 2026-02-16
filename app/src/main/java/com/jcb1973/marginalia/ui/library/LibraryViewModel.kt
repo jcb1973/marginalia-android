@@ -19,6 +19,7 @@ data class LibraryUiState(
     val books: List<Book> = emptyList(),
     val allTags: List<Tag> = emptyList(),
     val selectedTags: Set<Long> = emptySet(),
+    val matchAllTags: Boolean = false,
     val searchQuery: String = "",
     val statusFilter: ReadingStatus? = null,
     val ratingFilter: Int? = null,
@@ -42,9 +43,7 @@ class LibraryViewModel @Inject constructor(
     init {
         loadBooks()
         viewModelScope.launch {
-            tagRepository.getAllTags().collect { tags ->
-                _uiState.value = _uiState.value.copy(allTags = tags)
-            }
+            _uiState.value = _uiState.value.copy(allTags = tagRepository.getAllTagsOnce())
         }
     }
 
@@ -72,6 +71,15 @@ class LibraryViewModel @Inject constructor(
         val current = _uiState.value.selectedTags.toMutableSet()
         if (current.contains(tagId)) current.remove(tagId) else current.add(tagId)
         _uiState.value = _uiState.value.copy(selectedTags = current, currentPage = 0, books = emptyList())
+        loadBooks()
+    }
+
+    fun toggleTagMatchMode() {
+        _uiState.value = _uiState.value.copy(
+            matchAllTags = !_uiState.value.matchAllTags,
+            currentPage = 0,
+            books = emptyList()
+        )
         loadBooks()
     }
 
@@ -112,14 +120,15 @@ class LibraryViewModel @Inject constructor(
                     state.ratingFilter == null || book.rating == state.ratingFilter
                 }
                 .filter { book ->
-                    state.selectedTags.isEmpty() ||
-                            book.tags.any { it.id in state.selectedTags }
+                    if (state.selectedTags.isEmpty()) true
+                    else if (state.matchAllTags) state.selectedTags.all { tagId -> book.tags.any { it.id == tagId } }
+                    else book.tags.any { it.id in state.selectedTags }
                 }
 
             val sorted = sortBooks(filtered, state.sortOrder)
 
-            val updatedBooks = if (append) state.books + sorted else sorted
-            _uiState.value = state.copy(
+            val updatedBooks = if (append) _uiState.value.books + sorted else sorted
+            _uiState.value = _uiState.value.copy(
                 books = updatedBooks,
                 hasMore = rawBooks.size == pageSize,
                 isLoading = false
