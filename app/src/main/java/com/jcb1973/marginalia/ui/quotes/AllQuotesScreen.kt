@@ -32,6 +32,7 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,7 +42,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jcb1973.marginalia.ui.components.CoverImage
 import com.jcb1973.marginalia.ui.components.ExpandableText
@@ -57,6 +61,17 @@ fun AllQuotesScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var searchActive by remember { mutableStateOf(false) }
     val bookId = state.book?.id ?: 0L
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Scaffold(
         topBar = {
