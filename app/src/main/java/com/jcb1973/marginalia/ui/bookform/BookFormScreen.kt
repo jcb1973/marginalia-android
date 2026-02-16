@@ -65,11 +65,20 @@ import com.jcb1973.marginalia.ui.components.TagChip
 fun BookFormScreen(
     onNavigateBack: () -> Unit,
     onNavigateToScanner: () -> Unit,
+    scannedIsbn: String? = null,
+    onScannedIsbnConsumed: () -> Unit = {},
     viewModel: BookFormViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var showTagSuggestions by remember { mutableStateOf(false) }
+
+    LaunchedEffect(scannedIsbn) {
+        if (scannedIsbn != null) {
+            viewModel.setScannedIsbn(scannedIsbn)
+            onScannedIsbnConsumed()
+        }
+    }
 
     LaunchedEffect(state.isSaved) {
         if (state.isSaved) onNavigateBack()

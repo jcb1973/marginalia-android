@@ -99,8 +99,13 @@ fun NavGraph(navController: NavHostController) {
                     defaultValue = 0L
                 }
             )
-        ) {
+        ) { backStackEntry ->
+            val scannedIsbn = backStackEntry.savedStateHandle.get<String>("scannedIsbn")
             BookFormScreen(
+                scannedIsbn = scannedIsbn,
+                onScannedIsbnConsumed = {
+                    backStackEntry.savedStateHandle.remove<String>("scannedIsbn")
+                },
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToScanner = {
                     navController.navigate(Screen.Scanner.route)
