@@ -28,5 +28,6 @@ sealed class Screen(val route: String) {
             if (quoteId != null) "quote-editor/$bookId?quoteId=$quoteId" else "quote-editor/$bookId"
     }
     data object Scanner : Screen("scanner")
+    data object OcrCapture : Screen("ocr-capture")
     data object ManageTags : Screen("manage-tags")
 }

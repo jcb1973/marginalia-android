@@ -40,10 +40,19 @@ import com.jcb1973.marginalia.ui.components.ConfirmDeleteDialog
 fun QuoteEditorSheet(
     onDismiss: () -> Unit,
     onPhotographPage: () -> Unit,
+    ocrText: String? = null,
+    onOcrTextConsumed: () -> Unit = {},
     viewModel: QuoteEditorViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(ocrText) {
+        if (ocrText != null) {
+            viewModel.setOcrText(ocrText)
+            onOcrTextConsumed()
+        }
+    }
 
     LaunchedEffect(state.isSaved, state.isDeleted) {
         if (state.isSaved || state.isDeleted) onDismiss()

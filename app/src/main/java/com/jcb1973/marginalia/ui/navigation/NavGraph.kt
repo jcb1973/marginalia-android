@@ -18,6 +18,7 @@ import com.jcb1973.marginalia.ui.home.HomeScreen
 import com.jcb1973.marginalia.ui.library.LibraryScreen
 import com.jcb1973.marginalia.ui.notes.AllNotesScreen
 import com.jcb1973.marginalia.ui.notes.NoteEditorSheet
+import com.jcb1973.marginalia.ui.ocr.OcrCaptureScreen
 import com.jcb1973.marginalia.ui.quotes.AllQuotesScreen
 import com.jcb1973.marginalia.ui.quotes.QuoteEditorSheet
 import com.jcb1973.marginalia.ui.scanner.ScannerScreen
@@ -164,10 +165,17 @@ fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
                     defaultValue = 0L
                 }
             )
-        ) {
+        ) { backStackEntry ->
+            val ocrText = backStackEntry.savedStateHandle.get<String>("ocrText")
             QuoteEditorSheet(
+                ocrText = ocrText,
+                onOcrTextConsumed = {
+                    backStackEntry.savedStateHandle.remove<String>("ocrText")
+                },
                 onDismiss = { navController.popBackStack() },
-                onPhotographPage = { /* TODO: launch camera for OCR */ }
+                onPhotographPage = {
+                    navController.navigate(Screen.OcrCapture.route)
+                }
             )
         }
 
@@ -175,6 +183,16 @@ fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
             ScannerScreen(
                 onIsbnScanned = { isbn ->
                     navController.previousBackStackEntry?.savedStateHandle?.set("scannedIsbn", isbn)
+                    navController.popBackStack()
+                },
+                onCancel = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.OcrCapture.route) {
+            OcrCaptureScreen(
+                onTextRecognized = { text ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set("ocrText", text)
                     navController.popBackStack()
                 },
                 onCancel = { navController.popBackStack() }
