@@ -15,6 +15,8 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,12 +25,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,7 +66,7 @@ import com.jcb1973.marginalia.ui.components.ImageCropOverlay
 import java.nio.ByteBuffer
 
 private enum class CapturePhase {
-    CAMERA, CROP, PROCESSING
+    CAMERA, CROP, PROCESSING, SELECT
 }
 
 @Composable
@@ -70,6 +81,8 @@ fun OcrCaptureScreen(
     var cropRect by remember { mutableStateOf<Rect?>(null) }
     var hasCameraPermission by remember { mutableStateOf(false) }
     var imageViewSize by remember { mutableStateOf(IntSize.Zero) }
+    var recognizedLines by remember { mutableStateOf<List<String>>(emptyList()) }
+    var selectedIndices by remember { mutableStateOf<Set<Int>>(emptySet()) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -214,8 +227,10 @@ fun OcrCaptureScreen(
                             onClick = {
                                 phase = CapturePhase.PROCESSING
                                 val croppedBitmap = cropBitmap(bitmap, cropRect, imageViewSize)
-                                runOcr(croppedBitmap) { text ->
-                                    onTextRecognized(text)
+                                runOcrLines(croppedBitmap) { lines ->
+                                    recognizedLines = lines
+                                    selectedIndices = emptySet()
+                                    phase = CapturePhase.SELECT
                                 }
                             },
                             modifier = Modifier
@@ -243,6 +258,186 @@ fun OcrCaptureScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Recognizing text...", style = MaterialTheme.typography.bodyLarge)
                 }
+            }
+        }
+
+        CapturePhase.SELECT -> {
+            if (recognizedLines.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "No text found",
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Try photographing the page again",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(
+                            onClick = {
+                                capturedBitmap = null
+                                cropRect = null
+                                phase = CapturePhase.CAMERA
+                            },
+                            modifier = Modifier.testTag("retakeFromSelectButton")
+                        ) {
+                            Text("Retake")
+                        }
+                    }
+                }
+            } else {
+                LineSelectionContent(
+                    lines = recognizedLines,
+                    selectedIndices = selectedIndices,
+                    onToggleLine = { index ->
+                        selectedIndices = if (index in selectedIndices) {
+                            selectedIndices - index
+                        } else {
+                            selectedIndices + index
+                        }
+                    },
+                    onSelectAll = {
+                        selectedIndices = recognizedLines.indices.toSet()
+                    },
+                    onClearAll = {
+                        selectedIndices = emptySet()
+                    },
+                    onRetake = {
+                        capturedBitmap = null
+                        cropRect = null
+                        phase = CapturePhase.CAMERA
+                    },
+                    onUseSelected = {
+                        val selectedText = selectedIndices.sorted()
+                            .map { recognizedLines[it] }
+                            .joinToString("\n")
+                        onTextRecognized(selectedText)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LineSelectionContent(
+    lines: List<String>,
+    selectedIndices: Set<Int>,
+    onToggleLine: (Int) -> Unit,
+    onSelectAll: () -> Unit,
+    onClearAll: () -> Unit,
+    onRetake: () -> Unit,
+    onUseSelected: () -> Unit
+) {
+    val allSelected = selectedIndices.size == lines.size
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Header
+        Surface(tonalElevation = 2.dp) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Select lines",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${selectedIndices.size} of ${lines.size} selected",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(
+                        onClick = if (allSelected) onClearAll else onSelectAll,
+                        modifier = Modifier.testTag("selectAllToggle")
+                    ) {
+                        Text(if (allSelected) "Clear" else "Select All")
+                    }
+                }
+            }
+        }
+
+        HorizontalDivider()
+
+        // Line list
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .testTag("ocrLinesList")
+        ) {
+            itemsIndexed(lines) { index, line ->
+                val isSelected = index in selectedIndices
+                Surface(
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onToggleLine(index) }
+                        .testTag("ocrLine_$index")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = line,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (isSelected) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Selected",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+                if (index < lines.lastIndex) {
+                    HorizontalDivider()
+                }
+            }
+        }
+
+        // Bottom buttons
+        HorizontalDivider()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                onClick = onRetake,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("retakeFromSelectButton")
+            ) {
+                Text("Retake")
+            }
+            Button(
+                onClick = onUseSelected,
+                enabled = selectedIndices.isNotEmpty(),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("useSelectedButton")
+            ) {
+                Text("Use Selected")
             }
         }
     }
@@ -277,14 +472,17 @@ private fun cropBitmap(original: Bitmap, cropRect: Rect?, viewSize: IntSize): Bi
     return Bitmap.createBitmap(original, left, top, width, height)
 }
 
-private fun runOcr(bitmap: Bitmap, onResult: (String) -> Unit) {
+private fun runOcrLines(bitmap: Bitmap, onResult: (List<String>) -> Unit) {
     val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     val image = InputImage.fromBitmap(bitmap, 0)
     recognizer.process(image)
         .addOnSuccessListener { text ->
-            onResult(text.text)
+            val lines = text.textBlocks
+                .flatMap { block -> block.lines }
+                .map { line -> line.text }
+            onResult(lines)
         }
         .addOnFailureListener {
-            onResult("")
+            onResult(emptyList())
         }
 }
