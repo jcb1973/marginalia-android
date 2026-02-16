@@ -1,5 +1,6 @@
 package com.jcb1973.marginalia.ui.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -47,8 +49,10 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.jcb1973.marginalia.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jcb1973.marginalia.domain.model.Book
 import com.jcb1973.marginalia.ui.components.CoverImage
@@ -80,9 +84,10 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "Marginalia",
-                        style = MaterialTheme.typography.headlineMedium
+                    Image(
+                        painter = painterResource(R.drawable.logo),
+                        contentDescription = "Marginalia",
+                        modifier = Modifier.size(40.dp)
                     )
                 },
                 actions = {
