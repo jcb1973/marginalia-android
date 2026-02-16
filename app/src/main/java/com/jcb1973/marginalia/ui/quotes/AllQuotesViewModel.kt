@@ -38,41 +38,47 @@ class AllQuotesViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(book = bookRepository.getBookById(bookId))
+            loadQuotes()
         }
-        loadQuotes()
     }
 
     fun search(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
-        loadQuotes()
+        viewModelScope.launch { loadQuotes() }
     }
 
     fun toggleSort() {
-        _uiState.value = _uiState.value.copy(sortNewestFirst = !_uiState.value.sortNewestFirst)
-        loadQuotes()
+        val current = _uiState.value
+        val newSort = !current.sortNewestFirst
+        val resorted = if (newSort) {
+            current.quotes.sortedByDescending { it.createdAt }
+        } else {
+            current.quotes.sortedBy { it.createdAt }
+        }
+        _uiState.value = current.copy(sortNewestFirst = newSort, quotes = resorted)
     }
 
     fun toggleHasCommentFilter() {
         _uiState.value = _uiState.value.copy(filterHasComment = !_uiState.value.filterHasComment)
-        loadQuotes()
+        viewModelScope.launch { loadQuotes() }
     }
 
-    private fun loadQuotes() {
-        viewModelScope.launch {
-            val state = _uiState.value
-            val flow = when {
-                state.filterHasComment -> quoteRepository.getQuotesWithCommentForBook(bookId)
-                state.searchQuery.isNotBlank() -> quoteRepository.searchQuotesForBook(bookId, state.searchQuery)
-                else -> quoteRepository.getQuotesForBook(bookId)
-            }
-            flow.collect { quotes ->
-                val sorted = if (state.sortNewestFirst) {
-                    quotes.sortedByDescending { it.createdAt }
-                } else {
-                    quotes.sortedBy { it.createdAt }
-                }
-                _uiState.value = _uiState.value.copy(quotes = sorted, isLoading = false)
-            }
+    fun refresh() {
+        viewModelScope.launch { loadQuotes() }
+    }
+
+    private suspend fun loadQuotes() {
+        val state = _uiState.value
+        val quotes = when {
+            state.filterHasComment -> quoteRepository.getQuotesWithCommentForBookOnce(bookId)
+            state.searchQuery.isNotBlank() -> quoteRepository.searchQuotesForBookOnce(bookId, state.searchQuery)
+            else -> quoteRepository.getQuotesForBookOnce(bookId)
         }
+        val sorted = if (_uiState.value.sortNewestFirst) {
+            quotes.sortedByDescending { it.createdAt }
+        } else {
+            quotes.sortedBy { it.createdAt }
+        }
+        _uiState.value = _uiState.value.copy(quotes = sorted, isLoading = false)
     }
 }

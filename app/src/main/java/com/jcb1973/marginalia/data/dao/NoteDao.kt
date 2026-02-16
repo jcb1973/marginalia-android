@@ -30,6 +30,9 @@ interface NoteDao {
     @Query("SELECT * FROM notes WHERE bookId = :bookId ORDER BY createdAt DESC")
     fun getForBook(bookId: Long): Flow<List<NoteEntity>>
 
+    @Query("SELECT * FROM notes WHERE bookId = :bookId ORDER BY createdAt DESC")
+    suspend fun getForBookOnce(bookId: Long): List<NoteEntity>
+
     @Query(
         """
         SELECT * FROM notes
@@ -38,6 +41,15 @@ interface NoteDao {
         """
     )
     fun searchForBook(bookId: Long, query: String): Flow<List<NoteEntity>>
+
+    @Query(
+        """
+        SELECT * FROM notes
+        WHERE bookId = :bookId AND content LIKE '%' || :query || '%'
+        ORDER BY createdAt DESC
+        """
+    )
+    suspend fun searchForBookOnce(bookId: Long, query: String): List<NoteEntity>
 
     @Query("SELECT * FROM notes WHERE content LIKE '%' || :query || '%' ORDER BY createdAt DESC")
     fun search(query: String): Flow<List<NoteEntity>>

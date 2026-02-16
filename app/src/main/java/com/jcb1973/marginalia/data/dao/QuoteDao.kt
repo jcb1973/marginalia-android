@@ -30,6 +30,9 @@ interface QuoteDao {
     @Query("SELECT * FROM quotes WHERE bookId = :bookId ORDER BY createdAt DESC")
     fun getForBook(bookId: Long): Flow<List<QuoteEntity>>
 
+    @Query("SELECT * FROM quotes WHERE bookId = :bookId ORDER BY createdAt DESC")
+    suspend fun getForBookOnce(bookId: Long): List<QuoteEntity>
+
     @Query(
         """
         SELECT * FROM quotes
@@ -38,6 +41,15 @@ interface QuoteDao {
         """
     )
     fun searchForBook(bookId: Long, query: String): Flow<List<QuoteEntity>>
+
+    @Query(
+        """
+        SELECT * FROM quotes
+        WHERE bookId = :bookId AND (text LIKE '%' || :query || '%' OR comment LIKE '%' || :query || '%')
+        ORDER BY createdAt DESC
+        """
+    )
+    suspend fun searchForBookOnce(bookId: Long, query: String): List<QuoteEntity>
 
     @Query(
         """
@@ -59,4 +71,13 @@ interface QuoteDao {
         """
     )
     fun getWithCommentForBook(bookId: Long): Flow<List<QuoteEntity>>
+
+    @Query(
+        """
+        SELECT * FROM quotes
+        WHERE bookId = :bookId AND comment IS NOT NULL AND comment != ''
+        ORDER BY createdAt DESC
+        """
+    )
+    suspend fun getWithCommentForBookOnce(bookId: Long): List<QuoteEntity>
 }

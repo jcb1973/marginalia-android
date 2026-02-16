@@ -37,36 +37,42 @@ class AllNotesViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(book = bookRepository.getBookById(bookId))
+            loadNotes()
         }
-        loadNotes()
     }
 
     fun search(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)
-        loadNotes()
+        viewModelScope.launch { loadNotes() }
     }
 
     fun toggleSort() {
-        _uiState.value = _uiState.value.copy(sortNewestFirst = !_uiState.value.sortNewestFirst)
-        loadNotes()
+        val current = _uiState.value
+        val newSort = !current.sortNewestFirst
+        val resorted = if (newSort) {
+            current.notes.sortedByDescending { it.createdAt }
+        } else {
+            current.notes.sortedBy { it.createdAt }
+        }
+        _uiState.value = current.copy(sortNewestFirst = newSort, notes = resorted)
     }
 
-    private fun loadNotes() {
-        viewModelScope.launch {
-            val query = _uiState.value.searchQuery
-            val flow = if (query.isBlank()) {
-                noteRepository.getNotesForBook(bookId)
-            } else {
-                noteRepository.searchNotesForBook(bookId, query)
-            }
-            flow.collect { notes ->
-                val sorted = if (_uiState.value.sortNewestFirst) {
-                    notes.sortedByDescending { it.createdAt }
-                } else {
-                    notes.sortedBy { it.createdAt }
-                }
-                _uiState.value = _uiState.value.copy(notes = sorted, isLoading = false)
-            }
+    fun refresh() {
+        viewModelScope.launch { loadNotes() }
+    }
+
+    private suspend fun loadNotes() {
+        val query = _uiState.value.searchQuery
+        val notes = if (query.isBlank()) {
+            noteRepository.getNotesForBookOnce(bookId)
+        } else {
+            noteRepository.searchNotesForBookOnce(bookId, query)
         }
+        val sorted = if (_uiState.value.sortNewestFirst) {
+            notes.sortedByDescending { it.createdAt }
+        } else {
+            notes.sortedBy { it.createdAt }
+        }
+        _uiState.value = _uiState.value.copy(notes = sorted, isLoading = false)
     }
 }

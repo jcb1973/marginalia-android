@@ -17,8 +17,14 @@ class QuoteRepositoryImpl @Inject constructor(
     override fun getQuotesForBook(bookId: Long): Flow<List<Quote>> =
         quoteDao.getForBook(bookId).map { entities -> entities.map { it.toDomain() } }
 
+    override suspend fun getQuotesForBookOnce(bookId: Long): List<Quote> =
+        quoteDao.getForBookOnce(bookId).map { it.toDomain() }
+
     override fun searchQuotesForBook(bookId: Long, query: String): Flow<List<Quote>> =
         quoteDao.searchForBook(bookId, query).map { entities -> entities.map { it.toDomain() } }
+
+    override suspend fun searchQuotesForBookOnce(bookId: Long, query: String): List<Quote> =
+        quoteDao.searchForBookOnce(bookId, query).map { it.toDomain() }
 
     override fun searchQuotes(query: String): Flow<List<Quote>> =
         quoteDao.search(query).map { entities -> entities.map { it.toDomain() } }
@@ -28,6 +34,9 @@ class QuoteRepositoryImpl @Inject constructor(
 
     override fun getQuotesWithCommentForBook(bookId: Long): Flow<List<Quote>> =
         quoteDao.getWithCommentForBook(bookId).map { entities -> entities.map { it.toDomain() } }
+
+    override suspend fun getQuotesWithCommentForBookOnce(bookId: Long): List<Quote> =
+        quoteDao.getWithCommentForBookOnce(bookId).map { it.toDomain() }
 
     override suspend fun getQuoteById(id: Long): Quote? =
         quoteDao.getById(id)?.toDomain()

@@ -17,8 +17,14 @@ class NoteRepositoryImpl @Inject constructor(
     override fun getNotesForBook(bookId: Long): Flow<List<Note>> =
         noteDao.getForBook(bookId).map { entities -> entities.map { it.toDomain() } }
 
+    override suspend fun getNotesForBookOnce(bookId: Long): List<Note> =
+        noteDao.getForBookOnce(bookId).map { it.toDomain() }
+
     override fun searchNotesForBook(bookId: Long, query: String): Flow<List<Note>> =
         noteDao.searchForBook(bookId, query).map { entities -> entities.map { it.toDomain() } }
+
+    override suspend fun searchNotesForBookOnce(bookId: Long, query: String): List<Note> =
+        noteDao.searchForBookOnce(bookId, query).map { it.toDomain() }
 
     override fun searchNotes(query: String): Flow<List<Note>> =
         noteDao.search(query).map { entities -> entities.map { it.toDomain() } }
