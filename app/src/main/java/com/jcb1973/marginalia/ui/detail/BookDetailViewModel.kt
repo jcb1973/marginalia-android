@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -53,16 +54,16 @@ class BookDetailViewModel @Inject constructor(
         loadBook()
         viewModelScope.launch {
             noteRepository.getNotesForBook(bookId).collect { notes ->
-                _uiState.value = _uiState.value.copy(notes = notes)
+                _uiState.update { it.copy(notes = notes) }
             }
         }
         viewModelScope.launch {
             quoteRepository.getQuotesForBook(bookId).collect { quotes ->
-                _uiState.value = _uiState.value.copy(quotes = quotes)
+                _uiState.update { it.copy(quotes = quotes) }
             }
         }
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(allTags = tagRepository.getAllTagsOnce())
+            _uiState.update { it.copy(allTags = tagRepository.getAllTagsOnce()) }
         }
     }
 
@@ -76,11 +77,11 @@ class BookDetailViewModel @Inject constructor(
                 if (path != null) {
                     val updated = book.copy(coverImagePath = path)
                     bookRepository.updateBook(updated)
-                    _uiState.value = _uiState.value.copy(book = updated, isLoading = false)
+                    _uiState.update { it.copy(book = updated, isLoading = false) }
                     return@launch
                 }
             }
-            _uiState.value = _uiState.value.copy(book = book, isLoading = false)
+            _uiState.update { it.copy(book = book, isLoading = false) }
         }
     }
 
@@ -105,7 +106,7 @@ class BookDetailViewModel @Inject constructor(
         )
         viewModelScope.launch {
             bookRepository.updateBook(updated)
-            _uiState.value = _uiState.value.copy(book = updated)
+            _uiState.update { it.copy(book = updated) }
         }
     }
 
@@ -114,7 +115,7 @@ class BookDetailViewModel @Inject constructor(
         val updated = book.copy(rating = rating)
         viewModelScope.launch {
             bookRepository.updateBook(updated)
-            _uiState.value = _uiState.value.copy(book = updated)
+            _uiState.update { it.copy(book = updated) }
         }
     }
 
@@ -124,7 +125,7 @@ class BookDetailViewModel @Inject constructor(
         val updated = book.copy(tags = book.tags + tag)
         viewModelScope.launch {
             bookRepository.updateBook(updated)
-            _uiState.value = _uiState.value.copy(book = updated)
+            _uiState.update { it.copy(book = updated) }
         }
     }
 
@@ -139,10 +140,12 @@ class BookDetailViewModel @Inject constructor(
             val saved = newTag.copy(id = id)
             val updated = book.copy(tags = book.tags + saved)
             bookRepository.updateBook(updated)
-            _uiState.value = _uiState.value.copy(
-                book = updated,
-                allTags = tagRepository.getAllTagsOnce()
-            )
+            _uiState.update {
+                it.copy(
+                    book = updated,
+                    allTags = tagRepository.getAllTagsOnce()
+                )
+            }
         }
     }
 
@@ -151,18 +154,18 @@ class BookDetailViewModel @Inject constructor(
         val updated = book.copy(tags = book.tags.filter { it.id != tag.id })
         viewModelScope.launch {
             bookRepository.updateBook(updated)
-            _uiState.value = _uiState.value.copy(book = updated)
+            _uiState.update { it.copy(book = updated) }
         }
     }
 
     fun deleteBook() {
         viewModelScope.launch {
             bookRepository.deleteBook(bookId)
-            _uiState.value = _uiState.value.copy(isDeleted = true)
+            _uiState.update { it.copy(isDeleted = true) }
         }
     }
 
     fun clearMessage() {
-        _uiState.value = _uiState.value.copy(message = null)
+        _uiState.update { it.copy(message = null) }
     }
 }

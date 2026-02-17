@@ -1,6 +1,5 @@
 package com.jcb1973.marginalia.ui.home
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,10 +48,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.jcb1973.marginalia.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jcb1973.marginalia.domain.model.Book
 import com.jcb1973.marginalia.ui.components.CoverImage
@@ -83,13 +80,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Image(
-                        painter = painterResource(R.drawable.logo),
-                        contentDescription = "Marginalia",
-                        modifier = Modifier.size(40.dp)
-                    )
-                },
+                title = { Text("Marginalia") },
                 actions = {
                     Box {
                         IconButton(
@@ -298,6 +289,7 @@ private fun RecentItemCard(
     Card(
         modifier = Modifier
             .width(200.dp)
+            .height(180.dp)
             .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -315,11 +307,11 @@ private fun RecentItemCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = preview,
                 style = MaterialTheme.typography.bodySmall,
-                maxLines = 3,
+                maxLines = 8,
                 overflow = TextOverflow.Ellipsis
             )
         }
