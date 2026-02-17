@@ -200,6 +200,7 @@ fun OcrCaptureScreen(
                 )
 
                 ImageCropOverlay(
+                    overlaySize = imageViewSize,
                     onCropRectChanged = { rect -> cropRect = rect }
                 )
 
