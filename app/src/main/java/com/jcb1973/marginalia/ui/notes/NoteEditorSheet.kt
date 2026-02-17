@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,7 +47,11 @@ fun NoteEditorSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
             Text(
                 text = if (state.isEditing) "Edit Note" else "New Note",
                 style = MaterialTheme.typography.titleLarge
@@ -58,9 +64,8 @@ fun NoteEditorSheet(
                 label = { Text("Note") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
-                    .testTag("noteContentField"),
-                maxLines = 10
+                    .height(300.dp)
+                    .testTag("noteContentField")
             )
 
             Spacer(modifier = Modifier.height(16.dp))
