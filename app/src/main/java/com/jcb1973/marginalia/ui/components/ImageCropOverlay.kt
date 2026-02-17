@@ -127,6 +127,7 @@ private fun computeNewRect(
 @Composable
 fun ImageCropOverlay(
     overlaySize: IntSize,
+    imageSize: IntSize,
     onCropRectChanged: (Rect) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -135,17 +136,33 @@ fun ImageCropOverlay(
     val minSizePx = with(density) { 48.dp.toPx() }
     val handleDrawRadius = with(density) { 8.dp.toPx() }
 
-    var cropRect by remember(overlaySize) {
-        val w = overlaySize.width.toFloat()
-        val h = overlaySize.height.toFloat()
-        if (w > 0f && h > 0f) {
+    // Compute where the image actually renders within the view (ContentScale.Fit)
+    val contentBounds = remember(overlaySize, imageSize) {
+        val vw = overlaySize.width.toFloat()
+        val vh = overlaySize.height.toFloat()
+        val iw = imageSize.width.toFloat()
+        val ih = imageSize.height.toFloat()
+        if (vw > 0f && vh > 0f && iw > 0f && ih > 0f) {
+            val fitScale = minOf(vw / iw, vh / ih)
+            val displayedW = iw * fitScale
+            val displayedH = ih * fitScale
+            val offsetX = (vw - displayedW) / 2f
+            val offsetY = (vh - displayedH) / 2f
+            Rect(offsetX, offsetY, offsetX + displayedW, offsetY + displayedH)
+        } else {
+            Rect.Zero
+        }
+    }
+
+    var cropRect by remember(contentBounds) {
+        if (contentBounds != Rect.Zero) {
             val inset = 0.1f
             mutableStateOf(
                 Rect(
-                    left = w * inset,
-                    top = h * inset,
-                    right = w * (1f - inset),
-                    bottom = h * (1f - inset)
+                    left = contentBounds.left + contentBounds.width * inset,
+                    top = contentBounds.top + contentBounds.height * inset,
+                    right = contentBounds.right - contentBounds.width * inset,
+                    bottom = contentBounds.bottom - contentBounds.height * inset
                 )
             )
         } else {
@@ -162,16 +179,12 @@ fun ImageCropOverlay(
         }
     }
 
-    val parentBounds = remember(overlaySize) {
-        Rect(0f, 0f, overlaySize.width.toFloat(), overlaySize.height.toFloat())
-    }
-
     Canvas(
         modifier = modifier
             .fillMaxSize()
             .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
             .testTag("imageCropOverlay")
-            .pointerInput(overlaySize) {
+            .pointerInput(contentBounds) {
                 awaitPointerEventScope {
                     while (true) {
                         val down = awaitFirstDown(requireUnconsumed = false)
@@ -198,7 +211,7 @@ fun ImageCropOverlay(
                                     dragStartPointer = dragStartPointer,
                                     dragStartRect = dragStartRect,
                                     currentPointer = change.position,
-                                    parentBounds = parentBounds,
+                                    parentBounds = contentBounds,
                                     minSize = minSizePx
                                 )
                                 change.consume()

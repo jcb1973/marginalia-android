@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.Button
@@ -62,7 +64,11 @@ fun QuoteEditorSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
             Text(
                 text = if (state.isEditing) "Edit Quote" else "New Quote",
                 style = MaterialTheme.typography.titleLarge
@@ -75,9 +81,8 @@ fun QuoteEditorSheet(
                 label = { Text("Quote text") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp)
-                    .testTag("quoteTextField"),
-                maxLines = 8
+                    .height(300.dp)
+                    .testTag("quoteTextField")
             )
 
             Spacer(modifier = Modifier.height(8.dp))
